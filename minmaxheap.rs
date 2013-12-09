@@ -1,7 +1,8 @@
 extern mod std;
 
-use std::{util,vec};
+use std::{util, vec};
 
+#[deriving(Clone)]
 pub struct MinMaxHeap<T> {
     dat: ~[T],
     cap: uint
@@ -17,17 +18,17 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         MinMaxHeap { dat: vec::with_capacity(cap), cap: cap }
     }
 
-    pub fn from_vec_growable(v: ~[T]) -> MinMaxHeap<T> {
-        let mut out = MinMaxHeap { dat: v, cap: 0 };
+    pub fn from_vec(v: ~[T]) -> MinMaxHeap<T> {
+        let len = v.len();
+        let mut out = MinMaxHeap { dat: v, cap: len };
         for i in range(0, out.len()).invert() {
             out.trickle_down(i);
         }
         out
     }
 
-    pub fn from_vec_capped(v: ~[T]) -> MinMaxHeap<T> {
-        let len = v.len();
-        let mut out = MinMaxHeap { dat: v, cap: len };
+    pub fn from_vec_growable(v: ~[T]) -> MinMaxHeap<T> {
+        let mut out = MinMaxHeap { dat: v, cap: 0 };
         for i in range(0, out.len()).invert() {
             out.trickle_down(i);
         }
@@ -40,6 +41,10 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn is_capped(&self) -> bool {
+        self.cap != 0
     }
 
     pub fn peek_min<'a>(&'a self) -> Option<&'a T> {

@@ -5,7 +5,8 @@ use minmaxheap::MinMaxHeap;
 
 mod minmaxheap;
 
-fn chk_order<T: Ord+Eq+Clone>(desc: &mut MinMaxHeap<T>) {
+fn chk_order<T: Ord+Eq+Clone>(heap: &MinMaxHeap<T>) {
+    let mut desc = heap.clone();
     let len = desc.len();
     let mut asc = MinMaxHeap::new(len);
 
@@ -39,7 +40,7 @@ fn test_small() {
     assert_eq!(heap.len(), 2);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 5);
-    chk_order(&mut heap);
+    chk_order(&heap);
 }
 
 #[test]
@@ -49,7 +50,7 @@ fn test_med() {
     assert_eq!(heap.len(), 7);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 3);
-    chk_order(&mut heap);
+    chk_order(&heap);
 }
 
 #[test]
@@ -59,7 +60,7 @@ fn test_large() {
     assert_eq!(heap.len(), 10);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 0);
-    chk_order(&mut heap);
+    chk_order(&heap);
 }
 
 #[test]
@@ -69,7 +70,7 @@ fn test_dupes() {
     assert_eq!(heap.len(), 16);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 2);
-    chk_order(&mut heap);
+    chk_order(&heap);
 }
 
 #[test]
@@ -79,22 +80,53 @@ fn test_push_max() {
     assert_eq!(heap.len(), 16);
     assert_eq!(*heap.peek_max().unwrap(), 7);
     assert_eq!(*heap.peek_min().unwrap(), 0);
-    chk_order(&mut heap);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_from_vec() {
+    let vec = ~[3,5,9,7,6,1,8,4,2];
+    let len = vec.len();
+    let mut heap = MinMaxHeap::from_vec(vec);
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 1);
+
+    heap.push(10);
+
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 2);
+    chk_order(&heap);
+
+    heap.push(0);
+
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 2);
+    chk_order(&heap);
 }
 
 #[test]
 fn test_from_vec_growable() {
-    let vec = ~[3,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3];
+    let vec = ~[3,5,9,7,6,1,8,4,2];
     let len = vec.len();
     let mut heap = MinMaxHeap::from_vec_growable(vec);
+    assert_eq!(heap.is_capped(), false);
     assert_eq!(heap.len(), len);
     assert_eq!(*heap.peek_max().unwrap(), 9);
-    assert_eq!(*heap.peek_min().unwrap(), 0);
+    assert_eq!(*heap.peek_min().unwrap(), 1);
 
     heap.push(10);
 
     assert_eq!(heap.len(), len+1);
     assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 1);
+    chk_order(&heap);
+
+    heap.push(0);
+    assert_eq!(heap.len(), len+2);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
     assert_eq!(*heap.peek_min().unwrap(), 0);
-    chk_order(&mut heap);
+    chk_order(&heap);
 }
