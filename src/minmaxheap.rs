@@ -1,35 +1,35 @@
-extern mod std;
+extern crate std;
 
-use std::{util, vec};
+use std::mem;
 
 #[deriving(Clone)]
 pub struct MinMaxHeap<T> {
-    dat: ~[T],
+    dat: Vec<T>,
     cap: uint
 }
 
 impl<T:Ord+Clone> MinMaxHeap<T> {
 
     pub fn new(cap: uint) -> MinMaxHeap<T> {
-        MinMaxHeap { dat: ~[], cap: cap }
+        MinMaxHeap { dat: vec![], cap: cap }
     }
 
     pub fn with_capacity(cap: uint) -> MinMaxHeap<T> {
-        MinMaxHeap { dat: vec::with_capacity(cap), cap: cap }
+        MinMaxHeap { dat: Vec::with_capacity(cap), cap: cap }
     }
 
-    pub fn from_vec(v: ~[T]) -> MinMaxHeap<T> {
+    pub fn from_vec(v: Vec<T>) -> MinMaxHeap<T> {
         let len = v.len();
         let mut out = MinMaxHeap { dat: v, cap: len };
-        for i in range(0, out.len()).invert() {
+        for i in range(0, out.len()).rev() {
             out.trickle_down(i);
         }
         out
     }
 
-    pub fn from_vec_growable(v: ~[T]) -> MinMaxHeap<T> {
+    pub fn from_vec_growable(v: Vec<T>) -> MinMaxHeap<T> {
         let mut out = MinMaxHeap { dat: v, cap: 0 };
-        for i in range(0, out.len()).invert() {
+        for i in range(0, out.len()).rev() {
             out.trickle_down(i);
         }
         out
@@ -48,13 +48,13 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
     }
 
     pub fn peek_min<'a>(&'a self) -> Option<&'a T> {
-        if self.is_empty() { None } else { Some(&self.dat[0]) }
+        if self.is_empty() { None } else { Some(self.dat.get(0)) }
     }
 
     pub fn peek_max<'a>(&'a self) -> Option<&'a T> {
         match self.max_idx() {
             None => None,
-            Some(i) => Some(&self.dat[i])
+            Some(i) => Some(self.dat.get(i))
         }
     }
 
@@ -63,18 +63,18 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             0 => None,
             1 => Some(0),
             2 => Some(1),
-            _ => Some(if self.dat[1] >= self.dat[2] { 1 } else { 2 })
+            _ => Some(if self.dat.get(1) >= self.dat.get(2) { 1 } else { 2 })
         }
     }
 
     pub fn pop_min(&mut self) -> Option<T> {
         match self.len() {
             0 => None,
-            1 => self.dat.pop_opt(),
+            1 => self.dat.pop(),
             _ => {
                 let out = self.dat.swap_remove(0);
                 self.trickle_down(0);
-                Some(out)
+                out
             }
         }
     }
@@ -82,19 +82,19 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
     pub fn pop_max(&mut self) -> Option<T> {
         match self.len() {
             0 => None,
-            1|2 => self.dat.pop_opt(),
+            1|2 => self.dat.pop(),
             3 => {
-                if self.dat[1] >= self.dat[2] {
-                    Some(self.dat.swap_remove(1))
+                if self.dat.get(1) >= self.dat.get(2) {
+                    self.dat.swap_remove(1)
                 } else {
-                    self.dat.pop_opt()
+                    self.dat.pop()
                 }
             },
             _ => {
-                let idx = if self.dat[1] >= self.dat[2] { 1 } else { 2 };
+                let idx = if self.dat.get(1) >= self.dat.get(2) { 1 } else { 2 };
                 let out = self.dat.swap_remove(idx);
                 self.trickle_down(idx);
-                Some(out)
+                out
             }
         }
     }
@@ -112,7 +112,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             self.push_grow(item);
             None
         } else if *self.peek_min().unwrap() < item {
-            let out = util::replace(&mut self.dat[0], item);
+            let out = mem::replace(self.dat.get_mut(0), item);
             self.trickle_down(0);
             Some(out)
         } else {
@@ -132,7 +132,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             None
         } else if *self.peek_max().unwrap() > item {
             let idx = self.max_idx().unwrap();
-            let out = util::replace(&mut self.dat[idx], item);
+            let out = mem::replace(self.dat.get_mut(idx), item);
             self.trickle_down(idx);
             Some(out)
         } else {
@@ -158,16 +158,16 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         }
         match level_type(i) {
             Min => {
-                if self.dat[i] > self.dat[parent(i)] {
-                    self.dat.swap(i, parent(i));
+                if self.dat.get(i) > self.dat.get(parent(i)) {
+                    self.dat.as_mut_slice().swap(i, parent(i));
                     self.bubble_up_max(parent(i));
                 } else {
                     self.bubble_up_min(i);
                 }
             },
             Max => {
-                if self.dat[i] < self.dat[parent(i)] {
-                    self.dat.swap(i, parent(i));
+                if self.dat.get(i) < self.dat.get(parent(i)) {
+                    self.dat.as_mut_slice().swap(i, parent(i));
                     self.bubble_up_min(parent(i));
                 } else {
                     self.bubble_up_max(i);
@@ -180,8 +180,8 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         if i < 3 { // no grandparent
             return;
         }
-        if self.dat[i] < self.dat[grandparent(i)] {
-            self.dat.swap(i, grandparent(i));
+        if self.dat.get(i) < self.dat.get(grandparent(i)) {
+            self.dat.as_mut_slice().swap(i, grandparent(i));
             self.bubble_up_min(grandparent(i));
         }
     }
@@ -190,8 +190,8 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         if i < 3 { // no grandparent
             return;
         }
-        if self.dat[i] > self.dat[grandparent(i)] {
-            self.dat.swap(i, grandparent(i));
+        if self.dat.get(i) > self.dat.get(grandparent(i)) {
+            self.dat.as_mut_slice().swap(i, grandparent(i));
             self.bubble_up_max(grandparent(i));
         }
     }
@@ -208,12 +208,12 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         if m == 0 {
             return;
         }
-        if self.dat[m] < self.dat[i] {
-            self.dat.swap(m, i);
+        if self.dat.get(m) < self.dat.get(i) {
+            self.dat.as_mut_slice().swap(m, i);
         }
         if !(m == left(i) || m == right(i)) { // m is a grandchild
-            if self.dat[m] > self.dat[parent(m)] {
-                self.dat.swap(m, parent(m));
+            if self.dat.get(m) > self.dat.get(parent(m)) {
+                self.dat.as_mut_slice().swap(m, parent(m));
             }
             self.trickle_down_min(m);
         }
@@ -221,15 +221,15 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
 
     fn trickle_down_max(&mut self, i: uint) {
         let m = self.largest_child_or_grandchild(i);
-        if self.dat[m] > self.dat[i] {
-            self.dat.swap(m, i);
+        if self.dat.get(m) > self.dat.get(i) {
+            self.dat.as_mut_slice().swap(m, i);
         }
         if m == 0 {
             return;
         }
         if !(m == left(i) || m == right(i)) { // m is a grandchild
-            if self.dat[m] < self.dat[parent(m)] {
-                self.dat.swap(m, parent(m));
+            if self.dat.get(m) < self.dat.get(parent(m)) {
+                self.dat.as_mut_slice().swap(m, parent(m));
             }
             self.trickle_down_max(m);
         }
@@ -245,7 +245,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
                 if *idx >= self.dat.len() {
                     break;
                 }
-                if self.dat[*idx] < self.dat[min_idx] {
+                if self.dat.get(*idx) < self.dat.get(min_idx) {
                     min_idx = *idx;
                 }
             }
@@ -265,7 +265,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
                 if *idx >= self.dat.len() {
                     break;
                 }
-                if self.dat[*idx] > self.dat[max_idx] {
+                if self.dat.get(*idx) > self.dat.get(max_idx) {
                     max_idx = *idx;
                 }
             }
@@ -309,4 +309,133 @@ enum LevelType {
 
 fn level_type(i: uint) -> LevelType {
     if level(i) % 2 == 0 { Min } else { Max }
+}
+
+
+
+#[cfg(test)]
+fn chk_order<T: Ord+Eq+Clone>(heap: &MinMaxHeap<T>) {
+    let mut desc = heap.clone();
+    let len = desc.len();
+    let mut asc = MinMaxHeap::new(len);
+
+    let mut counter = 1;
+    let mut last = desc.pop_max().unwrap();
+    while !desc.is_empty() {
+        let next = desc.pop_max().unwrap();
+        assert!(next <= last);
+        asc.push(last);
+        last = next;
+        counter += 1;
+    }
+    asc.push(last);
+    assert_eq!(counter, len);
+
+    counter = 1;
+    last = asc.pop_min().unwrap();
+    while !asc.is_empty() {
+        let next = asc.pop_min().unwrap();
+        assert!(next >= last);
+        last = next;
+        counter += 1;
+    }
+    assert_eq!(counter, len);
+}
+
+#[test]
+fn test_small() {
+    let mut heap = MinMaxHeap::new(2);
+    heap.push_all([3i,5,9]);
+    assert_eq!(heap.len(), 2);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 5);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_med() {
+    let mut heap = MinMaxHeap::new(7);
+    heap.push_all([3i,5,9,7,6,1,0,8,4,2]);
+    assert_eq!(heap.len(), 7);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 3);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_large() {
+    let mut heap = MinMaxHeap::new(24);
+    heap.push_all([3i,5,9,7,6,1,0,8,4,2]);
+    assert_eq!(heap.len(), 10);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 0);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_dupes() {
+    let mut heap = MinMaxHeap::new(16);
+    heap.push_all([3i,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3]);
+    assert_eq!(heap.len(), 16);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 2);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_push_max() {
+    let mut heap = MinMaxHeap::new(16);
+    heap.push_all_max([3i,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3]);
+    assert_eq!(heap.len(), 16);
+    assert_eq!(*heap.peek_max().unwrap(), 7);
+    assert_eq!(*heap.peek_min().unwrap(), 0);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_from_vec() {
+    let vec = vec![3i,5,9,7,6,1,8,4,2];
+    let len = vec.len();
+    let mut heap = MinMaxHeap::from_vec(vec);
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 1);
+
+    heap.push(10);
+
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 2);
+    chk_order(&heap);
+
+    heap.push(0);
+
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 2);
+    chk_order(&heap);
+}
+
+#[test]
+fn test_from_vec_growable() {
+    let vec = vec![3i,5,9,7,6,1,8,4,2];
+    let len = vec.len();
+    let mut heap = MinMaxHeap::from_vec_growable(vec);
+    assert_eq!(heap.is_capped(), false);
+    assert_eq!(heap.len(), len);
+    assert_eq!(*heap.peek_max().unwrap(), 9);
+    assert_eq!(*heap.peek_min().unwrap(), 1);
+
+    heap.push(10);
+
+    assert_eq!(heap.len(), len+1);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 1);
+    chk_order(&heap);
+
+    heap.push(0);
+    assert_eq!(heap.len(), len+2);
+    assert_eq!(*heap.peek_max().unwrap(), 10);
+    assert_eq!(*heap.peek_min().unwrap(), 0);
+    chk_order(&heap);
 }
