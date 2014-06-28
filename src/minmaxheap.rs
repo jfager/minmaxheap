@@ -156,162 +156,132 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         if i == 0 {
             return;
         }
-        match level_type(i) {
-            Min => {
-                if self.dat.get(i) > self.dat.get(parent(i)) {
-                    self.dat.as_mut_slice().swap(i, parent(i));
-                    self.bubble_up_max(parent(i));
-                } else {
-                    self.bubble_up_min(i);
-                }
-            },
-            Max => {
-                if self.dat.get(i) < self.dat.get(parent(i)) {
-                    self.dat.as_mut_slice().swap(i, parent(i));
-                    self.bubble_up_min(parent(i));
-                } else {
-                    self.bubble_up_max(i);
-                }
-            }
+        let o = match i.level_type() {
+            Min => std::cmp::Greater,
+            Max => std::cmp::Less
+        };
+        if self.dat.get(i).cmp(self.dat.get(i.parent())) == o {
+            self.dat.as_mut_slice().swap(i, i.parent());
+            self._bubble_up(i.parent(), o);
+        } else {
+            self._bubble_up(i, rev_order(o));
         }
     }
 
-    fn bubble_up_min(&mut self, i: uint) {
+    fn _bubble_up(&mut self, i: uint, o: std::cmp::Ordering) {
         if i < 3 { // no grandparent
             return;
         }
-        if self.dat.get(i) < self.dat.get(grandparent(i)) {
-            self.dat.as_mut_slice().swap(i, grandparent(i));
-            self.bubble_up_min(grandparent(i));
-        }
-    }
-
-    fn bubble_up_max(&mut self, i: uint) {
-        if i < 3 { // no grandparent
-            return;
-        }
-        if self.dat.get(i) > self.dat.get(grandparent(i)) {
-            self.dat.as_mut_slice().swap(i, grandparent(i));
-            self.bubble_up_max(grandparent(i));
+        if self.dat.get(i).cmp(self.dat.get(i.grandparent())) == o {
+            self.dat.as_mut_slice().swap(i, i.grandparent());
+            self._bubble_up(i.grandparent(), o);
         }
     }
 
     fn trickle_down(&mut self, i: uint) {
-        match level_type(i) {
-            Min => self.trickle_down_min(i),
-            Max => self.trickle_down_max(i)
+        match i.level_type() {
+            Min => self._trickle_down(i, std::cmp::Less),
+            Max => self._trickle_down(i, std::cmp::Greater)
         }
     }
 
-    fn trickle_down_min(&mut self, i: uint) {
-        let m = self.smallest_child_or_grandchild(i);
+    fn _trickle_down(&mut self, i: uint, o: std::cmp::Ordering) {
+        let m = self.child_or_grandchild(i, o);
         if m == 0 {
             return;
         }
-        if self.dat.get(m) < self.dat.get(i) {
+        if self.dat.get(m).cmp(self.dat.get(i)) == o {
             self.dat.as_mut_slice().swap(m, i);
         }
-        if !(m == left(i) || m == right(i)) { // m is a grandchild
-            if self.dat.get(m) > self.dat.get(parent(m)) {
-                self.dat.as_mut_slice().swap(m, parent(m));
+        if !m.is_child_of(i) { //m is a grandchild
+            if self.dat.get(m.parent()).cmp(self.dat.get(m)) == o {
+                self.dat.as_mut_slice().swap(m, m.parent());
             }
-            self.trickle_down_min(m);
+            self._trickle_down(m, o);
         }
     }
 
-    fn trickle_down_max(&mut self, i: uint) {
-        let m = self.largest_child_or_grandchild(i);
-        if self.dat.get(m) > self.dat.get(i) {
-            self.dat.as_mut_slice().swap(m, i);
-        }
-        if m == 0 {
-            return;
-        }
-        if !(m == left(i) || m == right(i)) { // m is a grandchild
-            if self.dat.get(m) < self.dat.get(parent(m)) {
-                self.dat.as_mut_slice().swap(m, parent(m));
-            }
-            self.trickle_down_max(m);
-        }
-    }
-
-    fn smallest_child_or_grandchild(&self, i: uint) -> uint {
-        let l = left(i);
+    fn child_or_grandchild(&self, i: uint, o: std::cmp::Ordering) -> uint {
+        let l = i.left();
         if l < self.dat.len() {
-            let mut min_idx = l;
-            let r = right(i);
-            let idxs = [r, left(l), right(l), left(r), right(r)];
-            for idx in idxs.iter() {
+            let mut out = l;
+            let r = i.right();
+            for idx in [r, l.left(), l.right(), r.left(), r.right()].iter() {
                 if *idx >= self.dat.len() {
                     break;
                 }
-                if self.dat.get(*idx) < self.dat.get(min_idx) {
-                    min_idx = *idx;
+                if self.dat.get(*idx).cmp(self.dat.get(out)) == o {
+                    out = *idx;
                 }
             }
-            min_idx
+            out
         } else {
             0
         }
     }
 
-    fn largest_child_or_grandchild(&self, i: uint) -> uint {
-        let l = left(i);
-        if l < self.dat.len() {
-            let mut max_idx = l;
-            let r = right(i);
-            let idxs = [r, left(l), right(l), left(r), right(r)];
-            for idx in idxs.iter() {
-                if *idx >= self.dat.len() {
-                    break;
-                }
-                if self.dat.get(*idx) > self.dat.get(max_idx) {
-                    max_idx = *idx;
-                }
-            }
-            max_idx
-        } else {
-            0
+}
+
+trait HeapIdx {
+    fn left(self) -> Self;
+    fn right(self) -> Self;
+    fn parent(self) -> Self;
+    fn grandparent(self) -> Self;
+    fn is_child_of(self, i: Self) -> bool;
+    fn level(self) -> uint;
+    fn level_type(self) -> LevelType;
+}
+
+impl HeapIdx for uint {
+    fn left(self) -> uint {
+        (self * 2) + 1
+    }
+
+    fn right(self) -> uint {
+        (self * 2) + 2
+    }
+
+    fn parent(self) -> uint {
+        if self == 0 { 0 } else { (self - 1) / 2 }
+    }
+
+    fn grandparent(self) -> uint {
+        self.parent().parent()
+    }
+
+    fn is_child_of(self, parent: uint) -> bool {
+        self == parent.left() || self == parent.right()
+    }
+
+    fn level(self) -> uint {
+        let mut c = self;
+        let mut out = 0;
+        while c != 0 {
+            c = c.parent();
+            out += 1;
         }
+        out
     }
-}
 
-fn left(i: uint) -> uint {
-    (i * 2) + 1
-}
-
-fn right(i: uint) -> uint {
-    (i * 2) + 2
-}
-
-fn parent(i: uint) -> uint {
-    if i == 0 { 0 } else { (i - 1) / 2 }
-}
-
-fn grandparent(i: uint) -> uint {
-    parent(parent(i))
-}
-
-fn level(i: uint) -> uint {
-    let mut c = i;
-    let mut out = 0;
-    while c != 0 {
-        c = parent(c);
-        out += 1;
+    fn level_type(self) -> LevelType {
+        if self.level() % 2 == 0 { Min } else { Max }
     }
-    out
+
 }
+
 
 enum LevelType {
     Min,
     Max
 }
 
-fn level_type(i: uint) -> LevelType {
-    if level(i) % 2 == 0 { Min } else { Max }
+fn rev_order(o: std::cmp::Ordering) -> std::cmp::Ordering {
+    match o {
+        Less    => Greater,
+        Equal   => Equal,
+        Greater => Less
+    }
 }
-
-
 
 #[cfg(test)]
 fn chk_order<T: Ord+Eq+Clone>(heap: &MinMaxHeap<T>) {
