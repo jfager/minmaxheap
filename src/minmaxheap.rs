@@ -47,14 +47,14 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         self.cap != 0
     }
 
-    pub fn peek_min<'a>(&'a self) -> Option<&'a T> {
-        if self.is_empty() { None } else { Some(self.dat.get(0)) }
+    pub fn peek_min(&self) -> Option<&T> {
+        if self.is_empty() { None } else { Some(&self.dat[0]) }
     }
 
-    pub fn peek_max<'a>(&'a self) -> Option<&'a T> {
+    pub fn peek_max(&self) -> Option<&T> {
         match self.max_idx() {
             None => None,
-            Some(i) => Some(self.dat.get(i))
+            Some(i) => Some(&self.dat[i])
         }
     }
 
@@ -63,7 +63,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             0 => None,
             1 => Some(0),
             2 => Some(1),
-            _ => Some(if self.dat.get(1) >= self.dat.get(2) { 1 } else { 2 })
+            _ => Some(if self.dat[1] >= self.dat[2] { 1 } else { 2 })
         }
     }
 
@@ -84,14 +84,14 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             0 => None,
             1|2 => self.dat.pop(),
             3 => {
-                if self.dat.get(1) >= self.dat.get(2) {
+                if self.dat[1] >= self.dat[2] {
                     self.dat.swap_remove(1)
                 } else {
                     self.dat.pop()
                 }
             },
             _ => {
-                let idx = if self.dat.get(1) >= self.dat.get(2) { 1 } else { 2 };
+                let idx = if self.dat[1] >= self.dat[2] { 1 } else { 2 };
                 let out = self.dat.swap_remove(idx);
                 self.trickle_down(idx);
                 out
@@ -160,7 +160,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             Min => std::cmp::Greater,
             Max => std::cmp::Less
         };
-        if self.dat.get(i).cmp(self.dat.get(i.parent())) == o {
+        if self.dat[i].cmp(&self.dat[i.parent()]) == o {
             self.dat.as_mut_slice().swap(i, i.parent());
             self._bubble_up(i.parent(), o);
         } else {
@@ -172,7 +172,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         if i < 3 { // no grandparent
             return;
         }
-        if self.dat.get(i).cmp(self.dat.get(i.grandparent())) == o {
+        if self.dat[i].cmp(&self.dat[i.grandparent()]) == o {
             self.dat.as_mut_slice().swap(i, i.grandparent());
             self._bubble_up(i.grandparent(), o);
         }
@@ -190,11 +190,11 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         if m == 0 {
             return;
         }
-        if self.dat.get(m).cmp(self.dat.get(i)) == o {
+        if self.dat[m].cmp(&self.dat[i]) == o {
             self.dat.as_mut_slice().swap(m, i);
         }
         if !m.is_child_of(i) { //m is a grandchild
-            if self.dat.get(m.parent()).cmp(self.dat.get(m)) == o {
+            if self.dat[m.parent()].cmp(&self.dat[m]) == o {
                 self.dat.as_mut_slice().swap(m, m.parent());
             }
             self._trickle_down(m, o);
@@ -210,7 +210,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
                 if *idx >= self.dat.len() {
                     break;
                 }
-                if self.dat.get(*idx).cmp(self.dat.get(out)) == o {
+                if self.dat[*idx].cmp(&self.dat[out]) == o {
                     out = *idx;
                 }
             }
