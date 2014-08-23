@@ -1,5 +1,3 @@
-extern crate std;
-
 use std::mem;
 
 #[deriving(Clone)]

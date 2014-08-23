@@ -4,6 +4,6 @@ name = "minmaxheap"
 version = "0.0.1"
 authors = [ "jfager@gmail.com" ]
 
-[[lib]]
+[lib]
 
 name = "minmaxheap"
