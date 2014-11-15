@@ -110,7 +110,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             self.push_grow(item);
             None
         } else if *self.peek_min().unwrap() < item {
-            let out = mem::replace(self.dat.get_mut(0), item);
+            let out = mem::replace(&mut self.dat[0], item);
             self.trickle_down(0);
             Some(out)
         } else {
@@ -130,7 +130,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             None
         } else if *self.peek_max().unwrap() > item {
             let idx = self.max_idx().unwrap();
-            let out = mem::replace(self.dat.get_mut(idx), item);
+            let out = mem::replace(&mut self.dat[idx], item);
             self.trickle_down(idx);
             Some(out)
         } else {
