@@ -1,25 +1,26 @@
 use std::mem;
+use std::cmp::Ordering;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct MinMaxHeap<T> {
     dat: Vec<T>,
-    cap: uint
+    cap: usize
 }
 
 impl<T:Ord+Clone> MinMaxHeap<T> {
 
-    pub fn new(cap: uint) -> MinMaxHeap<T> {
+    pub fn new(cap: usize) -> MinMaxHeap<T> {
         MinMaxHeap { dat: vec![], cap: cap }
     }
 
-    pub fn with_capacity(cap: uint) -> MinMaxHeap<T> {
+    pub fn with_capacity(cap: usize) -> MinMaxHeap<T> {
         MinMaxHeap { dat: Vec::with_capacity(cap), cap: cap }
     }
 
     pub fn from_vec(v: Vec<T>) -> MinMaxHeap<T> {
         let len = v.len();
         let mut out = MinMaxHeap { dat: v, cap: len };
-        for i in range(0, out.len()).rev() {
+        for i in (0 .. out.len()).rev() {
             out.trickle_down(i);
         }
         out
@@ -27,13 +28,13 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
 
     pub fn from_vec_growable(v: Vec<T>) -> MinMaxHeap<T> {
         let mut out = MinMaxHeap { dat: v, cap: 0 };
-        for i in range(0, out.len()).rev() {
+        for i in (0 .. out.len()).rev() {
             out.trickle_down(i);
         }
         out
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         self.dat.len()
     }
 
@@ -56,7 +57,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         }
     }
 
-    fn max_idx(&self) -> Option<uint> {
+    fn max_idx(&self) -> Option<usize> {
         match self.len() {
             0 => None,
             1 => Some(0),
@@ -72,7 +73,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             _ => {
                 let out = self.dat.swap_remove(0);
                 self.trickle_down(0);
-                out
+                Some(out)
             }
         }
     }
@@ -83,7 +84,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             1|2 => self.dat.pop(),
             3 => {
                 if self.dat[1] >= self.dat[2] {
-                    self.dat.swap_remove(1)
+                    Some(self.dat.swap_remove(1))
                 } else {
                     self.dat.pop()
                 }
@@ -92,7 +93,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
                 let idx = if self.dat[1] >= self.dat[2] { 1 } else { 2 };
                 let out = self.dat.swap_remove(idx);
                 self.trickle_down(idx);
-                out
+                Some(out)
             }
         }
     }
@@ -150,13 +151,13 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         self.bubble_up(last);
     }
 
-    fn bubble_up(&mut self, i: uint) {
+    fn bubble_up(&mut self, i: usize) {
         if i == 0 {
             return;
         }
         let o = match i.level_type() {
-            Min => std::cmp::Greater,
-            Max => std::cmp::Less
+            LevelType::Min => Ordering::Greater,
+            LevelType::Max => Ordering::Less
         };
         if self.dat[i].cmp(&self.dat[i.parent()]) == o {
             self.dat.as_mut_slice().swap(i, i.parent());
@@ -166,7 +167,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         }
     }
 
-    fn _bubble_up(&mut self, i: uint, o: std::cmp::Ordering) {
+    fn _bubble_up(&mut self, i: usize, o: Ordering) {
         if i < 3 { // no grandparent
             return;
         }
@@ -176,14 +177,14 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         }
     }
 
-    fn trickle_down(&mut self, i: uint) {
+    fn trickle_down(&mut self, i: usize) {
         match i.level_type() {
-            Min => self._trickle_down(i, std::cmp::Less),
-            Max => self._trickle_down(i, std::cmp::Greater)
+            LevelType::Min => self._trickle_down(i, Ordering::Less),
+            LevelType::Max => self._trickle_down(i, Ordering::Greater)
         }
     }
 
-    fn _trickle_down(&mut self, i: uint, o: std::cmp::Ordering) {
+    fn _trickle_down(&mut self, i: usize, o: std::cmp::Ordering) {
         let m = self.child_or_grandchild(i, o);
         if m == 0 {
             return;
@@ -199,7 +200,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
         }
     }
 
-    fn child_or_grandchild(&self, i: uint, o: std::cmp::Ordering) -> uint {
+    fn child_or_grandchild(&self, i: usize, o: std::cmp::Ordering) -> usize {
         let l = i.left();
         if l < self.dat.len() {
             let mut out = l;
@@ -226,32 +227,32 @@ trait HeapIdx {
     fn parent(self) -> Self;
     fn grandparent(self) -> Self;
     fn is_child_of(self, i: Self) -> bool;
-    fn level(self) -> uint;
+    fn level(self) -> usize;
     fn level_type(self) -> LevelType;
 }
 
-impl HeapIdx for uint {
-    fn left(self) -> uint {
+impl HeapIdx for usize {
+    fn left(self) -> usize {
         (self * 2) + 1
     }
 
-    fn right(self) -> uint {
+    fn right(self) -> usize {
         (self * 2) + 2
     }
 
-    fn parent(self) -> uint {
+    fn parent(self) -> usize {
         if self == 0 { 0 } else { (self - 1) / 2 }
     }
 
-    fn grandparent(self) -> uint {
+    fn grandparent(self) -> usize {
         self.parent().parent()
     }
 
-    fn is_child_of(self, parent: uint) -> bool {
+    fn is_child_of(self, parent: usize) -> bool {
         self == parent.left() || self == parent.right()
     }
 
-    fn level(self) -> uint {
+    fn level(self) -> usize {
         let mut c = self;
         let mut out = 0;
         while c != 0 {
@@ -262,7 +263,7 @@ impl HeapIdx for uint {
     }
 
     fn level_type(self) -> LevelType {
-        if self.level() % 2 == 0 { Min } else { Max }
+        if self.level() % 2 == 0 { LevelType::Min } else { LevelType::Max }
     }
 
 }
@@ -273,11 +274,11 @@ enum LevelType {
     Max
 }
 
-fn rev_order(o: std::cmp::Ordering) -> std::cmp::Ordering {
+fn rev_order(o: Ordering) -> Ordering {
     match o {
-        Less    => Greater,
-        Equal   => Equal,
-        Greater => Less
+        Ordering::Less    => Ordering::Greater,
+        Ordering::Equal   => Ordering::Equal,
+        Ordering::Greater => Ordering::Less
     }
 }
 
@@ -313,7 +314,7 @@ fn chk_order<T: Ord+Eq+Clone>(heap: &MinMaxHeap<T>) {
 #[test]
 fn test_small() {
     let mut heap = MinMaxHeap::new(2);
-    heap.push_all([3i,5,9]);
+    heap.push_all(&[3,5,9]);
     assert_eq!(heap.len(), 2);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 5);
@@ -323,7 +324,7 @@ fn test_small() {
 #[test]
 fn test_med() {
     let mut heap = MinMaxHeap::new(7);
-    heap.push_all([3i,5,9,7,6,1,0,8,4,2]);
+    heap.push_all(&[3,5,9,7,6,1,0,8,4,2]);
     assert_eq!(heap.len(), 7);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 3);
@@ -333,7 +334,7 @@ fn test_med() {
 #[test]
 fn test_large() {
     let mut heap = MinMaxHeap::new(24);
-    heap.push_all([3i,5,9,7,6,1,0,8,4,2]);
+    heap.push_all(&[3,5,9,7,6,1,0,8,4,2]);
     assert_eq!(heap.len(), 10);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 0);
@@ -343,7 +344,7 @@ fn test_large() {
 #[test]
 fn test_dupes() {
     let mut heap = MinMaxHeap::new(16);
-    heap.push_all([3i,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3]);
+    heap.push_all(&[3,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3]);
     assert_eq!(heap.len(), 16);
     assert_eq!(*heap.peek_max().unwrap(), 9);
     assert_eq!(*heap.peek_min().unwrap(), 2);
@@ -353,7 +354,7 @@ fn test_dupes() {
 #[test]
 fn test_push_max() {
     let mut heap = MinMaxHeap::new(16);
-    heap.push_all_max([3i,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3]);
+    heap.push_all_max(&[3,5,9,7,6,1,0,8,4,2,2,4,8,0,1,6,7,9,5,3]);
     assert_eq!(heap.len(), 16);
     assert_eq!(*heap.peek_max().unwrap(), 7);
     assert_eq!(*heap.peek_min().unwrap(), 0);
@@ -362,7 +363,7 @@ fn test_push_max() {
 
 #[test]
 fn test_from_vec() {
-    let vec = vec![3i,5,9,7,6,1,8,4,2];
+    let vec = vec![3,5,9,7,6,1,8,4,2];
     let len = vec.len();
     let mut heap = MinMaxHeap::from_vec(vec);
     assert_eq!(heap.len(), len);
@@ -386,7 +387,7 @@ fn test_from_vec() {
 
 #[test]
 fn test_from_vec_growable() {
-    let vec = vec![3i,5,9,7,6,1,8,4,2];
+    let vec = vec![3,5,9,7,6,1,8,4,2];
     let len = vec.len();
     let mut heap = MinMaxHeap::from_vec_growable(vec);
     assert_eq!(heap.is_capped(), false);
