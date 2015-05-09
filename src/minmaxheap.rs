@@ -160,7 +160,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             LevelType::Max => Ordering::Less
         };
         if self.dat[i].cmp(&self.dat[i.parent()]) == o {
-            self.dat.as_mut_slice().swap(i, i.parent());
+            &mut self.dat[..].swap(i, i.parent());
             self._bubble_up(i.parent(), o);
         } else {
             self._bubble_up(i, rev_order(o));
@@ -172,7 +172,7 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             return;
         }
         if self.dat[i].cmp(&self.dat[i.grandparent()]) == o {
-            self.dat.as_mut_slice().swap(i, i.grandparent());
+            &mut self.dat[..].swap(i, i.grandparent());
             self._bubble_up(i.grandparent(), o);
         }
     }
@@ -190,11 +190,11 @@ impl<T:Ord+Clone> MinMaxHeap<T> {
             return;
         }
         if self.dat[m].cmp(&self.dat[i]) == o {
-            self.dat.as_mut_slice().swap(m, i);
+            &mut self.dat[..].swap(m, i);
         }
         if !m.is_child_of(i) { //m is a grandchild
             if self.dat[m.parent()].cmp(&self.dat[m]) == o {
-                self.dat.as_mut_slice().swap(m, m.parent());
+                &mut self.dat[..].swap(m, m.parent());
             }
             self._trickle_down(m, o);
         }
